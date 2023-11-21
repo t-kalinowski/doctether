@@ -18,6 +18,10 @@ remotes::install_github("t-kalinowski/doctether")
 
 ## Example
 
+{doctether} works with both roxygen blocks and rmarkdown vignettes.
+
+### Tether roxygen blocks
+
 Start by adding a `@tether` tag to a roxygen block. This tag will be used to
 resolve the upstream documentation you want to keep the roxygen block
 synchronized with.
@@ -55,7 +59,7 @@ To synchronize docs with tethers, we call `doctether::retether()`, like so:
 ```r
 py_run_string("import keras") # setup python __main__ w/ the latest module version
 
-parse_tether_tag <- function(endpoint) {
+resolve_roxy_tether <- function(endpoint) {
   py_obj <- py_eval(endpoint) # e.g., keras.layers.Identity
 
   roxy <- py_obj$`__doc__` |> glue::trim() |> strsplit("\n") |> _[[1]]
@@ -69,7 +73,7 @@ parse_tether_tag <- function(endpoint) {
   )
 }
 
-doctether::retether(parse_tag = parse_tether_tag)
+doctether::retether(roxy_tag_eval = resolve_roxy_tether)
 ```
 
 Now, when the Python endpoint `__doc__` or `__signature__` changes upstream, you
@@ -80,3 +84,45 @@ attempting to rebase the previous roxygen adaption and overlay it on the updated
 tether, git-formatted conflict markers are inserted in the roxygen block. All
 that's left then to do is to review the changes, resolve any conflicts, and
 stage and commit the updates.
+
+### Tether rmarkdown vignettes
+
+Start by adding a `tether: ` field to the front matter of the vignette, like
+this:
+
+```rmd
+---
+title: Writing your own callbacks
+output: rmarkdown::html_vignette
+tether: https://raw.githubusercontent.com/keras-team/keras/master/guides/writing_your_own_callbacks.py
+---
+
+## Introduction
+
+A callback is a powerful tool to customize the behavior of a Keras model during
+training, evaluation, or inference. 
+
+In this guide, you will learn what a Keras callback is, what it can do, and how you can
+build your own. 
+
+...
+
+```
+
+Then, `doctether::retether()` will also update vignettes. By default, the
+`tether: ` field is passed to `readLines()` in order to fetch the tether. You
+can customize the behavior by passing a function to `rmd_field_eval`, like so:
+
+```r
+resolve_rmd_tether <- function(field_val) {
+  sub("https://raw.githubusercontent.com", "~/github/", field_val, 
+        fixed = TRUE) |> 
+      readLines() |> 
+      my_custom_post_process()
+}
+
+doctether::retether(
+  roxy_tag_eval = resolve_roxy_tether, 
+  rmd_field_eval = resolve_rmd_tether
+)
+```

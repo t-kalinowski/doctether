@@ -2,20 +2,30 @@
 #' Retether an R package
 #'
 #' @param base_path path to an R package.
-#'
-#' @param parse_tag A function taking a single argument, the raw `@tether`
-#'   string, returning a tether. If `NULL`, (the default), the tag value is
-#'   evaluated with `eval(str2expression(tag$raw), globalenv())`
-#' @param resolve_tether_file if `NULL`, the default, tether files are stored
-#'   under `"man-src/tether/{block_name}.R"`. If supplied a string, this is
-#'   taken as the directory where to store tether files (instead of
-#'   `"man-src/tether"`). If a function, it is expected to take a single
-#'   argument, the block name, and return a filepath.
+#' @param roxy_tag_eval A function which takes a single argument, the string
+#'   value of the `@tether` tag, and returns a tether. A tether is coerced and
+#'   flatten to a character vector.
+#' @param roxy_tether_file A function which takes a single argument, the roxygen
+#'   block name, and returns a file path for where to store (cache) the tether.
+#'   Defaults to `".tether/man/{block_name}.R"`
+#' @param rmd_field_eval A function which takes a single argument, the value
+#'   supplied to the `tether: ` field in the frontmatter of an Rmd or Qmd file
+#'   in the `vignettes/` or `vignettes-src/` directory, and returns a tether. A
+#'   tether is coerced and flatten to a character vector.
+#' @param rmd_tether_file A function which takes a single argument, the rmd file
+#'   path, and returns a file path for where to store (cache) the tether.
+#'   Defaults to `".tether/{relative_rmd_filepath}"`
 #'
 #' @export
 #' @importFrom roxygen2 env_package parse_package roclet_process roclet_output
 #' @importFrom withr local_dir local_options with_options
-retether <- function(..., base_path = ".", parse_tag = NULL, resolve_tether_file = NULL) {
+retether <-
+function(...,
+         base_path = ".",
+         roxy_tag_eval = \(tag_raw) eval(str2lang(tag_raw), globalenv()),
+         roxy_tether_file = \(block_name) glue(".tether/man/{block_name}.R"),
+         rmd_field_eval = \(field_raw) readLines(field_raw),
+         rmd_tether_file = \(rmd_file) fs::path(".tether/", fs::path_rel(rmd_file))) {
 
   stopifnot(length(...) == 0)
 
@@ -26,8 +36,8 @@ retether <- function(..., base_path = ".", parse_tag = NULL, resolve_tether_file
 
   check_no_unstaged_changes("R/", "man-src/")
 
-  local_options(doctether.tether_tag_parse = parse_tag,
-                doctether.resolve_tether_file = resolve_tether_file)
+  local_options(doctether.tether_tag_parse = roxy_tag_eval,
+                doctether.resolve_tether_file = roxy_tether_file)
 
   with_options(list(keep.source.pkgs = TRUE,
                     keep.parse.data.pkgs = TRUE), {
@@ -37,6 +47,58 @@ retether <- function(..., base_path = ".", parse_tag = NULL, resolve_tether_file
   blocks <- parse_package(env = env)
   results <- tether_process_blocks(blocks, env = env)
   tether_output(results)
+
+  # now handle vignettes
+  check_no_unstaged_changes("vignettes-src/", "vignettes/")
+  for (rmd_file in list.files(c("vignettes-src", "vignettes"),
+                              pattern = "\\.[qQrR]?md$", recursive = TRUE,
+                              full.names = TRUE, all.files = TRUE)) {
+    retether_rmd(rmd_file,
+                 eval_tether_field = rmd_field_eval,
+                 get_tether_file = rmd_tether_file)
+  }
+}
+
+#' @importFrom fs path path_rel
+retether_rmd <-
+function(rmd_file,
+         eval_tether_field = readLines,
+         get_tether_file = \(rmd_file) path(".tether/", path_rel(rmd_file))) {
+
+  fm <- rmarkdown::yaml_front_matter(rmd_file)
+  if (is.null(fm$tether)) {
+    message("No tether field: ", rmd_file)
+    return(invisible())
+  }
+
+  new_tether <- eval_tether_field(fm$tether) |> str_normalize_tether()
+  tether_file <- get_tether_file(rmd_file)
+
+  if (!file.exists(tether_file)) {
+    dir_create(tether_file)
+    message("Writing out new tether: ", tether_file)
+    write_lines(new_tether, tether_file)
+    return(invisible())
+  }
+
+  old_tether <- readLines(tether_file) |> str_normalize_tether()
+
+  if(old_tether == new_tether) {
+    message("No change: ", rmd_file)
+    return(invisible())
+  }
+
+  new_overlaid <- make_updated_overlay(old_tether = old_tether,
+                                       old_overlaid = readLines(rmd_file),
+                                       new_tether = new_tether)
+
+  message("Writing out updated tether: ", tether_file)
+  writeLines(new_tether, tether_file)
+
+  message("Writing out updated rmd: ", rmd_file)
+  writeLines(new_overlaid, rmd_file)
+
+  invisible()
 }
 
 # TODO: use {cli} instead of message()/cat();

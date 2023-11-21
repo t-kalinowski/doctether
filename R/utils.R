@@ -29,10 +29,13 @@ str_flatten_and_compact_lines <- function(..., roxygen = FALSE) {
 
 
 str_normalize_tether <- function(x) {
-  str_split_lines(x) |>
+  unlist(x) |> as.character() |>
+    stringi::stri_flatten("\n") |>
+    stringi::stri_split_lines1() |>
     stringi::stri_trim_right() |>
-    str_flatten_lines() |>
-    stringi::stri_trim_both()
+    stringi::stri_flatten("\n")
+    stringi::stri_trim_both() # |>
+    # stringi::stri_join("\n")
 }
 
 map_chr <- function(.x, .f, ...) {

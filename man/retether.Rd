@@ -4,20 +4,34 @@
 \alias{retether}
 \title{Retether an R package}
 \usage{
-retether(..., base_path = ".", parse_tag = NULL, resolve_tether_file = NULL)
+retether(
+  ...,
+  base_path = ".",
+  roxy_tag_eval = function(tag_raw) eval(str2lang(tag_raw), globalenv()),
+  roxy_tether_file = function(block_name) glue(".tether/man/{block_name}.R"),
+  rmd_field_eval = function(field_raw) readLines(field_raw),
+  rmd_tether_file = function(rmd_file) fs::path(".tether/", fs::path_rel(rmd_file))
+)
 }
 \arguments{
 \item{base_path}{path to an R package.}
 
-\item{parse_tag}{A function taking a single argument, the raw \verb{@tether}
-string, returning a tether. If \code{NULL}, (the default), the tag value is
-evaluated with \code{eval(str2expression(tag$raw), globalenv())}}
+\item{roxy_tag_eval}{A function which takes a single argument, the string
+value of the \verb{@tether} tag, and returns a tether. A tether is coerced and
+flatten to a character vector.}
 
-\item{resolve_tether_file}{if \code{NULL}, the default, tether files are stored
-under \code{"man-src/tether/{block_name}.R"}. If supplied a string, this is
-taken as the directory where to store tether files (instead of
-\code{"man-src/tether"}). If a function, it is expected to take a single
-argument, the block name, and return a filepath.}
+\item{roxy_tether_file}{A function which takes a single argument, the roxygen
+block name, and returns a file path for where to store (cache) the tether.
+Defaults to \code{".tether/man/{block_name}.R"}}
+
+\item{rmd_field_eval}{A function which takes a single argument, the value
+supplied to the \verb{tether: } field in the frontmatter of an Rmd or Qmd file
+in the \verb{vignettes/} or \verb{vignettes-src/} directory, and returns a tether. A
+tether is coerced and flatten to a character vector.}
+
+\item{rmd_tether_file}{A function which takes a single argument, the rmd file
+path, and returns a file path for where to store (cache) the tether.
+Defaults to \code{".tether/{relative_rmd_filepath}"}}
 }
 \description{
 Retether an R package
