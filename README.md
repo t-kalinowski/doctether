@@ -4,8 +4,9 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of doctether is to make it easy to keep R documentation synchronized
-with any upstream sources they are adapted from. It is a tool for R package maintainers.
+_doctether_ makes it easy to keep R documentation up-to-date
+with any upstream sources the documentation is adapted from.
+It is a tool for R package maintainers.
 
 ## Installation
 
@@ -17,13 +18,14 @@ remotes::install_github("t-kalinowski/doctether")
 
 ## Example
 
-The basic usage pattern is to add a `@tether` tag to a roxygen block. This tag
-will be used to resolve the upstream documentation you want to keep the roxygen block 
+Start by adding a `@tether` tag to a roxygen block. This tag will be used to
+resolve the upstream documentation you want to keep the roxygen block
 synchronized with.
 
-For example, say we have in our package a documented R function, and we would like
-to keep the function and documentation synchronized with upstream changes. We
-could this by first adding an `@tether` tag to the roxygen block
+For example, say we have in our package a documented R function,
+`layer_identity()`, and we would like to keep the function and documentation
+synchronized with upstream, the Python module endpoint `keras.layers.Identity`. 
+We add to our roxygen block a `@tether keras.layers.Identity` tag like this: 
 
 ``` r
 #' Identity Layer
@@ -48,7 +50,7 @@ function (object, ...)
 
 In the standard `devtools::document()` (Ctrl/Cmd + Shift + D) workflow, the `@tether` tag is ignored.
 
-To synchronize docs with tethers, you can call `doctether::retether()`, like so:
+To synchronize docs with tethers, we call `doctether::retether()`, like so:
 
 ```r
 py_run_string("import keras") # setup python __main__ w/ the latest module version
@@ -67,13 +69,14 @@ parse_tether_tag <- function(endpoint) {
   )
 }
 
-doctether::retether(tag_parser = parse_tether_tag)
+doctether::retether(parse_tag = parse_tether_tag)
 ```
 
-Now, when the python `__doc__` get's updated, you will see the changes
-dynamically incorporated into the roxygen block in `R/layers.R`, as well as the
-raw tether file cached in `man-src/tether/layer_identity.R`. If there are any
-conflicts encountered while attempting to rebase the previous roxygen adaption
-and overlay it on the updated tether, git-formatted conflict markers are
-inserted in the roxygen block. All that's left then to do is to review the
-changes, resolve any conflicts, and stage and commit the updates.
+Now, when the Python endpoint `__doc__` or `__signature__` changes upstream, you
+will see the changes dynamically incorporated into the roxygen block and
+function definition in `R/layers.R`, as well as an updated tether file cached in
+`man-src/tether/layer_identity.R`. If there are any conflicts encountered while
+attempting to rebase the previous roxygen adaption and overlay it on the updated
+tether, git-formatted conflict markers are inserted in the roxygen block. All
+that's left then to do is to review the changes, resolve any conflicts, and
+stage and commit the updates.

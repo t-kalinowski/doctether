@@ -1,14 +1,67 @@
 
-
+#' Retether an R package
+#'
+#' @param base_path path to an R package.
+#'
+#' @param parse_tag A function taking a single argument, the raw `@tether`
+#'   string, returning a tether. If `NULL`, (the default), the tag value is
+#'   evaluated with `eval(str2expression(tag$raw), globalenv())`
+#' @param resolve_tether_file if `NULL`, the default, tether files are stored
+#'   under `"man-src/tether/{block_name}.R"`. If supplied a string, this is
+#'   taken as the directory where to store tether files (instead of
+#'   `"man-src/tether"`). If a function, it is expected to take a single
+#'   argument, the block name, and return a filepath.
+#'
 #' @export
+#' @importFrom roxygen2 env_package parse_package roclet_process roclet_output
+#' @importFrom withr local_dir local_options with_options
+retether <- function(..., base_path = ".", parse_tag = NULL, resolve_tether_file = NULL) {
+
+  stopifnot(length(...) == 0)
+
+  if(base_path != ".") {
+    local_dir(base_path)
+    base_path <- "."
+  }
+
+  check_no_unstaged_changes("R/", "man-src/")
+
+  local_options(doctether.tether_tag_parse = parse_tag,
+                doctether.resolve_tether_file = resolve_tether_file)
+
+  with_options(list(keep.source.pkgs = TRUE,
+                    keep.parse.data.pkgs = TRUE), {
+    env <- env_package(".")
+  })
+
+  blocks <- parse_package(env = env)
+  results <- tether_process_blocks(blocks, env = env)
+  tether_output(results)
+}
+
+# TODO: use {cli} instead of message()/cat();
+#   print a nice summary output at end of retether() listing
+#   - updated blocks, (w/ and w/o conflicts),
+#   - new symbols / tethers
+#   - n symbols w/ unchanged tethers.
+
+#' Stub tag parse for `@tether` tags
+#'
+#' This method is exported to allow roxygen2 to ignore the `@tether` tag
+#' during the standard `roxygen2::roxygenise()` workflow.
+#'
+#' @param x The `@tether` tag
+#'
+#' @return `x`, unmodified
+#' @export
+#' @keywords internal
+roxy_tag_parse.roxy_tag_tether <- function(x) x
+
 #' @importFrom roxygen2 roxy_tag_parse roxy_tag_warning
-roxy_tag_parse.roxy_tag_tether <- function(x) x # identity?
-
-
 tether_parse_tag <- function(x) {
   # job of this function is to set `x$val <- <something>`
   #  where <something> is something convenient for roclet_process() later.
-  parse_tag <- getOption('roxysync.tether_tag_parse', function(raw) {
+  parse_tag <- getOption('doctether.tether_tag_parse', function(raw) {
     str_normalize_tether(map_chr(str2expression(x$raw), eval, globalenv()))
   })
   parsed <- tryCatch(parse_tag(x$raw), error = identity)
@@ -38,7 +91,7 @@ tether_process_blocks <- function(blocks, env) {
     results[[name]] <- list(
       name = name,
       file = block$file,
-      line_range =  get_overlay_line_range(block),
+      line_range =  get_block_overlay_line_range(block),
       tether =  tag$val
     )
   }
@@ -105,38 +158,23 @@ tether_output <- function(results) {
 }
 
 
-#' Retether an R package
-#'
-#' @param base_path path to an R package.
-#'
-#' @param tag_parser A function taking a single argument, the raw `@tether`
-#'   string, returning a tether. If `NULL`, (the default), the tag value is
-#'   evaluated with `eval(str2expression(tag$raw), globalenv())`
-#' @param resolve_tether_file if `NULL`, the default, tether files are stored
-#'   under `"man-src/tether/{block_name}.R"`. If supplied a string, this is
-#'   taken as the directory where to store tether files (instead of
-#'   `"man-src/tether"`). If a function, it is expected to take a single
-#'   argument, the block name, and return a filepath.
-#'
-#' @export
-#' @importFrom roxygen2 env_package parse_package roclet_process roclet_output
-#' @importFrom withr local_dir local_options with_options
-retether <- function(base_path = ".", tag_parser = NULL, resolve_tether_file = NULL) {
-
-  local_options(roxysync.tether_tag_parse = tag_parser,
-                roxytether.resolve_tether_file = resolve_tether_file)
-
-  if(base_path != ".") {
-    local_dir(base_path)
-    base_path <- "."
+get_tether_file <- function(name) {
+  resolve <- getOption("doctether.resolve_tether_file", NULL)
+  if(is.null(resolve)) {
+    dir <- fs::path("man-src/tether")
+    file <- fs::path(dir, paste0(name, ".R"))
+  } else if(is.function(resolve)) {
+    file <- fs::path_tidy(resolve(name))
+    dir <- dirname(file)
+  } else if(is.character(resolve)) {
+    dir <- resolve
+    file <- fs::path(dir, paste0(name, ".R"))
+  } else {
+    stop("Invalid value supplied to `options(doctether.resolve_tether_file = )`")
   }
-  with_options(list(keep.source.pkgs = TRUE,
-                    keep.parse.data.pkgs = TRUE), {
-    env <- env_package(".")
-  })
 
-  blocks <- parse_package(env = env)
-  results <- tether_process_blocks(blocks, env = env)
-  tether_output(results)
-
+  fs::dir_create(dir)
+  file
 }
+
+

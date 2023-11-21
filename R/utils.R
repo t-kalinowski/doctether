@@ -70,3 +70,12 @@ maybe_shQuote <- function(x)  {
 }
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
+
+check_no_unstaged_changes <- function(...) {
+  files_w_unstaged_changes <- git("diff --name-only", ..., stdout = TRUE)
+  if(length(files_w_unstaged_changes))
+    stop("Run `retether()` only without any unstaged changes. ",
+         "The following files have changes that must be staged, committed, or stashed:\n",
+         paste0("- ", files_w_unstaged_changes, collapse = "\n"))
+}
+
