@@ -26,10 +26,10 @@ Start by adding a `@tether` tag to a roxygen block. This tag will be used to
 resolve the upstream documentation you want to keep the roxygen block
 synchronized with.
 
-For example, say we have in our package a documented R function,
-`layer_identity()`, and we would like to keep the function and documentation
+For example, say you have in an R package a documented function,
+`layer_identity()`, and you would like to keep the function and documentation
 synchronized with upstream, the Python module endpoint `keras.layers.Identity`. 
-We add to our roxygen block a `@tether keras.layers.Identity` tag like this: 
+You can add to the roxygen block a `@tether keras.layers.Identity` tag like this: 
 
 ``` r
 #' Identity Layer
@@ -54,7 +54,7 @@ function (object, ...)
 
 In the standard `devtools::document()` (Ctrl/Cmd + Shift + D) workflow, the `@tether` tag is ignored.
 
-To synchronize docs with tethers, we call `doctether::retether()`, like so:
+To synchronize docs with tethers, call `doctether::retether()`, like so:
 
 ```r
 py_run_string("import keras") # setup python __main__ w/ the latest module version
@@ -109,16 +109,20 @@ build your own.
 
 ```
 
-Then, `doctether::retether()` will also update vignettes. By default, the
-`tether: ` field is passed to `readLines()` in order to fetch the tether. You
-can customize the behavior by passing a function to `rmd_field_eval`, like so:
+Then, `doctether::retether()` will also update vignettes. Any `Rmd`, `qmd` or
+`md` files in the `vignettes/` or `vignettes-src/` directories with a `tether`
+field in the yaml frontmatter are updated. By default, the value of the `tether: ` 
+field is passed to `readLines()` in order to fetch the tether. You can
+customize the behavior by passing a function to `rmd_field_eval`, like so:
 
 ```r
-resolve_rmd_tether <- function(field_val) {
-  sub("https://raw.githubusercontent.com", "~/github/", field_val, 
-        fixed = TRUE) |> 
-      readLines() |> 
-      my_custom_post_process()
+resolve_rmd_tether <- function(frontmatter_field_val) {
+  sub("https://raw.githubusercontent.com/keras-team/keras/master/", 
+      "~/github/keras-team/keras/", 
+      frontmatter_field_val, 
+      fixed = TRUE) |> 
+    readLines() |>
+    my_custom_post_process()
 }
 
 doctether::retether(
