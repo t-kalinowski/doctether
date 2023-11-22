@@ -13,4 +13,5 @@ Imports:
     roxygen2,
     withr,
     fs,
-    stringi
+    stringi,
+    cli

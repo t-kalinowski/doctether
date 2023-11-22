@@ -4,7 +4,7 @@ make_updated_overlay <- function(old_tether, old_overlaid, new_tether,
   dir <- withr::local_tempdir(paste0(dirname(getwd()), "-roxysync"))
   withr::local_dir(dir)
 
-  git("init --initial-branch=tether") #--quiet
+  git("init --initial-branch=tether")
   file <- paste0(name, ".txt")
   writeLines(old_tether, file)
   git("add", file)
@@ -21,13 +21,16 @@ make_updated_overlay <- function(old_tether, old_overlaid, new_tether,
   git("commit -m 'new tether'")
 
   git("checkout overlay")
-  exit_code <- git("rebase tether overlay", valid_exit_codes = c(0L, 1L)) # --empty=keep --keep-empty
+  exit_code <- git("rebase tether overlay", # --empty=keep --keep-empty
+                   valid_exit_codes = c(0L, 1L),
+                   stdout = FALSE)
   new_overlaid <- readLines(file)
   if(exit_code) {
     new_overlaid[new_overlaid == "<<<<<<< HEAD"] <-
       "<<<<<<< (updated tether)"
     new_overlaid[grep(">>>>>>> [^ ]+ \\(overlay\\)", new_overlaid)] <-
       ">>>>>>> (previous overlay)"
+    attr(new_overlaid, "conflict") <- TRUE
   }
 
   new_overlaid

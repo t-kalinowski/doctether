@@ -8,7 +8,7 @@ retether(
   ...,
   base_path = ".",
   roxy_tag_eval = function(tag_raw) eval(str2lang(tag_raw), globalenv()),
-  roxy_tether_file = function(block_name) glue(".tether/man/{block_name}.R"),
+  roxy_tether_file = function(block_name) glue(".tether/man/{block_name}.txt"),
   rmd_field_eval = function(field_raw) readLines(field_raw),
   rmd_tether_file = function(rmd_file) fs::path(".tether/", fs::path_rel(rmd_file))
 )
@@ -18,16 +18,18 @@ retether(
 
 \item{roxy_tag_eval}{A function which takes a single argument, the string
 value of the \verb{@tether} tag, and returns a tether. A tether is coerced and
-flatten to a character vector.}
+flatten to a character vector. Pass \code{NULL} to skip processing roxygen
+blocks, and only retether vignettes.}
 
 \item{roxy_tether_file}{A function which takes a single argument, the roxygen
 block name, and returns a file path for where to store (cache) the tether.
-Defaults to \code{".tether/man/{block_name}.R"}}
+Defaults to \code{".tether/man/{block_name}.txt"}.}
 
 \item{rmd_field_eval}{A function which takes a single argument, the value
 supplied to the \verb{tether: } field in the frontmatter of an Rmd or Qmd file
 in the \verb{vignettes/} or \verb{vignettes-src/} directory, and returns a tether. A
-tether is coerced and flatten to a character vector.}
+tether is coerced and flatten to a character vector. Pass \code{NULL} to skip
+processing vignettes and only retether roxygen blocks.}
 
 \item{rmd_tether_file}{A function which takes a single argument, the rmd file
 path, and returns a file path for where to store (cache) the tether.

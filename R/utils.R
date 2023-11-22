@@ -33,7 +33,7 @@ str_normalize_tether <- function(x) {
     stringi::stri_flatten("\n") |>
     stringi::stri_split_lines1() |>
     stringi::stri_trim_right() |>
-    stringi::stri_flatten("\n")
+    stringi::stri_flatten("\n") |>
     stringi::stri_trim_both() # |>
     # stringi::stri_join("\n")
 }
@@ -75,10 +75,12 @@ maybe_shQuote <- function(x)  {
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 check_no_unstaged_changes <- function(...) {
-  files_w_unstaged_changes <- git("diff --name-only", ..., stdout = TRUE)
+  files <- c(...)
+  if (length(files))
+    files <- files[file.exists(files)]
+  files_w_unstaged_changes <- git("diff --name-only", files, stdout = TRUE)
   if(length(files_w_unstaged_changes))
     stop("Run `retether()` only without any unstaged changes. ",
          "The following files have changes that must be staged, committed, or stashed:\n",
          paste0("- ", files_w_unstaged_changes, collapse = "\n"))
 }
-
