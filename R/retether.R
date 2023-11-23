@@ -100,6 +100,7 @@ function(rmd_file,
     # message("Writing out new tether: ", tether_file)
     cli_alert_info("New tether: {.file {tether_file}}")
     write_lines(new_tether, tether_file)
+    fs::file_chmod(tether_file, "444") # read only, same as '-w'
     return(invisible())
   }
 
@@ -115,7 +116,9 @@ function(rmd_file,
                                        new_tether = new_tether)
   cli_alert_info("Updated tether: {.file {tether_file}}")
   # message("Writing out updated tether: ", tether_file)
+  unlink(tether_file)
   writeLines(new_tether, tether_file)
+  fs::file_chmod(tether_file, "444") # read only, same as '-w'
 
   if(isTRUE(attr(new_overlaid, "conflict", TRUE))) {
     cli_alert_warning("Updating vignette (with conflicts): {.file {rmd_file}}")
@@ -244,6 +247,7 @@ tether_output <- function(results) {
       # cat(sprintf("%s: writing out new tether (%s)\n",
       #             result$name, tether_file))
       writeLines(result$tether, tether_file)
+      fs::file_chmod(tether_file, "444") # read only, same as '-w'
       add(tally$new_tether) <- 1L
       next
     }
@@ -274,7 +278,9 @@ tether_output <- function(results) {
     set_file_lines(result$file, result$line_range, new_overlaid)
     # message("writing out new tether: ", tether_file)
     cli_alert_info("Updated tether {.topic {result$name}} ({.file {tether_file}})")
+    unlink(tether_file)
     writeLines(new_tether, tether_file)
+    fs::file_chmod(tether_file, "444") # read only, same as '-w'
   }
 
   cli_progress_done()
