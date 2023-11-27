@@ -39,8 +39,12 @@ function(...,
     base_path <- "."
   }
 
+  check_no_unstaged_changes(
+    ".tether/",
+    if(!is.null(roxy_tag_eval)) "R/",
+    if(!is.null(rmd_field_eval)) c("vignettes-src", "vignettes"))
+
   if(!is.null(roxy_tag_eval)) {
-    check_no_unstaged_changes("R/", ".tether/")
 
     local_options(doctether.tether_tag_parse = roxy_tag_eval,
                   doctether.resolve_tether_file = roxy_tether_file)
@@ -63,7 +67,6 @@ function(...,
 
   # now handle vignettes
   if(!is.null(rmd_field_eval)) {
-    check_no_unstaged_changes("vignettes-src/", "vignettes/", ".tether/")
     rmd_files <- list.files(c("vignettes-src", "vignettes"),
                             pattern = "\\.[qQrR]?md$", recursive = TRUE,
                             full.names = TRUE, all.files = TRUE)
