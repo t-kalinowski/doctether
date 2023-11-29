@@ -27,6 +27,7 @@ as_tether.default <- function(x, ..., roxify = TRUE) {
   tether
 }
 
+
 #' @rdname as_tether
 #' @export
 as_tether.connection <- function(x, ..., roxify = TRUE) {
@@ -218,10 +219,10 @@ as_tether.function <- function(x, ..., roxify = TRUE) {
       break
   }
   help_ <- utils::help((funname), (pkgname), help_type = 'text')
-  tether <- capture.output(tools::Rd2txt(
-    utils:::.getHelpFile(help_),
+  tether <- utils::capture.output(tools::Rd2txt(
+    asNamespace("utils")$.getHelpFile(help_),
     options = list(code_quote = FALSE,
-                   underline_title = FALSE,
+                   underline_titles = FALSE,
                    itemBullet = "* ",
                    sectionIndent = 0L),
     package = pkgname
