@@ -108,7 +108,6 @@ as_tether.python.builtin.type <- function(x, ..., roxify = TRUE, inherited = FAL
 
   tether <- str_normalize_tether(tether)
 
-
   if(roxify) {
     attr(tether, "roxified") <- roxify_tether(x, tether = tether)
   }
@@ -162,6 +161,10 @@ as_tether.python.builtin.function <- function(x, ..., name = x$`__name__`, roxif
   out
 }
 
+#' @export
+#' @rdname as_tether
+as_tether.python.builtin.method <- as_tether.python.builtin.function
+# TODO: we can build a better __name__ for methods here...
 
 #' @importFrom stringr str_split_1 str_trim str_flatten str_sub<- str_sub
 #'   str_replace fixed

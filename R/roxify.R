@@ -26,6 +26,9 @@ roxify_tether.python.builtin.function <- function(x, tether, ...) {
 roxify_tether.python.builtin.type <- roxify_tether.python.builtin.function
 
 #' @export
+roxify_tether.python.builtin.method <- roxify_tether.python.builtin.function
+
+#' @export
 roxify_tether.python.builtin.module <- function(x, tether, ...) {
   ""
 }

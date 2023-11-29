@@ -8,6 +8,7 @@
 \alias{as_tether.python.builtin.type}
 \alias{as_tether.python.builtin.module}
 \alias{as_tether.python.builtin.function}
+\alias{as_tether.python.builtin.method}
 \title{Generate tether}
 \usage{
 as_tether(x, ..., roxify = TRUE)
@@ -23,6 +24,8 @@ as_tether(x, ..., roxify = TRUE)
 \method{as_tether}{python.builtin.module}(x, ..., roxify = TRUE)
 
 \method{as_tether}{python.builtin.function}(x, ..., name = x$`__name__`, roxify = TRUE)
+
+\method{as_tether}{python.builtin.method}(x, ..., name = x$`__name__`, roxify = TRUE)
 }
 \arguments{
 \item{x}{an object}
