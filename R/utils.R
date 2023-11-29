@@ -28,14 +28,14 @@ str_flatten_and_compact_lines <- function(..., roxygen = FALSE) {
 }
 
 
-str_normalize_tether <- function(x) {
-  unlist(x) |> as.character() |>
+str_normalize_tether <- function(...) {
+  unlist(list(...)) |> as.character() |>
     stringi::stri_flatten("\n") |>
     stringi::stri_split_lines1() |>
     stringi::stri_trim_right() |>
     stringi::stri_flatten("\n") |>
-    stringi::stri_trim_both() # |>
-    # stringi::stri_join("\n")
+    stringi::stri_trim_both() |>
+    stringi::stri_join("\n")
 }
 
 map_chr <- function(.x, .f, ...) {

@@ -204,3 +204,38 @@ format_py_signature <- function(x = reticulate::py_eval(name), name = NULL) {
   x <- str_flatten(c(name, x))
   as_glue(x)
 }
+
+
+#' @export
+as_tether.function <- function(x, ..., roxify = TRUE) {
+  ns <- environment(x)
+  ns_name <- environmentName(ns)
+  if(!identical(ns, asNamespace(ns_name)))
+    stop("Can't locate packge for ", deparse1(x))
+  pkgname <- ns_name
+  for(funname in getNamespaceExports(ns)) {
+    if (identical(x, get(funname, envir = ns, inherits = FALSE)))
+      break
+  }
+  help_ <- utils::help((funname), (pkgname), help_type = 'text')
+  tether <- capture.output(tools::Rd2txt(
+    utils:::.getHelpFile(help_),
+    options = list(code_quote = FALSE,
+                   underline_title = FALSE,
+                   itemBullet = "* ",
+                   sectionIndent = 0L),
+    package = pkgname
+  )) |>
+    str_normalize_tether()
+
+  fn <- x
+  body(fn) <- quote({})
+
+  if(roxify)
+    attr(tether, "roxified") <- str_normalize_tether(str_flatten_lines(
+      str_c("#' ", str_split_lines(tether)),
+      deparse(as.function(c(formals(x), quote({}))))
+    ))
+
+  tether
+}
