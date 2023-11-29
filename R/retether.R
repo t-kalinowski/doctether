@@ -76,9 +76,11 @@ function(...,
     cli_progress_bar("Checking vignettes", total = length(rmd_files))
     for (rmd_file in rmd_files) {
       cli_progress_update()
-      retether_rmd(rmd_file,
-                   eval_tether_field = rmd_field_eval,
-                   get_tether_file = rmd_tether_file)
+      tryCatch({
+        retether_rmd(rmd_file,
+                     eval_tether_field = rmd_field_eval,
+                     get_tether_file = rmd_tether_file)
+      }, error = warning)
     }
     cli_progress_done()
   }
