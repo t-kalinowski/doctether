@@ -74,6 +74,8 @@ maybe_shQuote <- function(x)  {
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+`add<-` <- function(x, value) x + value
+
 check_no_unstaged_changes <- function(...) {
   files <- c(...)
   if (length(files))

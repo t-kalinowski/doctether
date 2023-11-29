@@ -1,17 +1,23 @@
 Package: doctether
 Title: Dynamically overlay doc adaptions on upstream changes
 Version: 0.0.0.9000
-Authors@R: 
+Authors@R:
     person("Tomasz", "Kalinowski", , "kalinowskit@gmail.com", role = c("aut", "cre"))
 Description: Provides the '@tether' roxygen2 tag, which facilitates a workflow
   that will allow for easily keeping roxygen blocks in sync with other documents.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
-Imports: 
+RoxygenNote: 7.2.3.9000
+Imports:
     roxygen2,
     withr,
     fs,
+    stringr,
     stringi,
-    cli
+    cli,
+    glue,
+    magrittr,
+    reticulate,
+    rmarkdown,
+    rlang

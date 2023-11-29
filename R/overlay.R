@@ -42,7 +42,7 @@ view_tether_overlay_diff <- function(rdname) {
   tether_file <- fs::path("man-src", "tethers", rdname, ext = "md")
   adaptation_file <- fs::path(tempdir(), "doctether", rdname, ext = "R")
   fs::dir_create(dirname(adaptation_file))
-  writeLines(get_block_overlay_lines(rdname), adaptation)
+  writeLines(get_block_overlay_lines(rdname), adaptation_file)
 
   system2("code", c("--diff", tether_file, adaptation_file))
 }

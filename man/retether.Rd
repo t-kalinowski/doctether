@@ -14,6 +14,9 @@ retether(
 )
 }
 \arguments{
+\item{...}{reserved for future use, and to ensure that all arguments are
+named}
+
 \item{base_path}{path to an R package.}
 
 \item{roxy_tag_eval}{A function which takes a single argument, the string

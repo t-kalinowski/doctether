@@ -1,6 +1,8 @@
 
 #' Retether an R package
 #'
+#' @param ... reserved for future use, and to ensure that all arguments are
+#'   named
 #' @param base_path path to an R package.
 #' @param roxy_tag_eval A function which takes a single argument, the string
 #'   value of the `@tether` tag, and returns a tether. A tether is coerced and
@@ -40,13 +42,13 @@ function(...,
   }
 
   check_no_unstaged_changes(
-    ".tether/",
+    # ".tether/",
     if(!is.null(roxy_tag_eval)) "R/",
     if(!is.null(rmd_field_eval)) c("vignettes-src", "vignettes"))
 
   if(!is.null(roxy_tag_eval)) {
 
-    local_options(doctether.tether_tag_parse = roxy_tag_eval,
+    local_options(doctether.roxy_tag_eval = roxy_tag_eval,
                   doctether.resolve_tether_file = roxy_tether_file)
 
     # cli_progress_step("Loading package")
@@ -83,6 +85,8 @@ function(...,
   cli_alert_success("Finished retethering package!")
 }
 
+# TODO: git hooks to make sure someone doesn't accidently check in <<<< ===== >>>> lines.
+
 #' @importFrom fs path path_rel
 retether_rmd <-
 function(rmd_file,
@@ -102,7 +106,7 @@ function(rmd_file,
     dir_create(dirname(tether_file))
     # message("Writing out new tether: ", tether_file)
     cli_alert_info("New tether: {.file {tether_file}}")
-    write_lines(new_tether, tether_file)
+    writeLines(new_tether, tether_file)
     fs::file_chmod(tether_file, "444") # read only, same as '-w'
     return(invisible())
   }
@@ -156,17 +160,19 @@ roxy_tag_parse.roxy_tag_tether <- function(x) x
 tether_parse_tag <- function(x) {
   # job of this function is to set `x$val <- <something>`
   #  where <something> is something convenient for roclet_process() later.
-  parse_tag <- getOption('doctether.tether_tag_parse', function(raw) {
-    str_normalize_tether(map_chr(str2expression(x$raw), eval, globalenv()))
+  eval_tag <- getOption('doctether.roxy_tag_eval', function(string) {
+    eval(str2lang(string), new.env(parent = globalenv()))
   })
-  parsed <- tryCatch(parse_tag(x$raw), error = identity)
+  evaled <- tryCatch({
+    eval_tag(x$raw)
+  }, error = identity)
 
-  if (inherits(parsed, "error")) {
+  if (inherits(evaled, "error")) {
     roxy_tag_warning(x, "error evaluating @tether tag")
     return()
   }
 
-  x$val <- str_normalize_tether(parsed)
+  x$val <- evaled
   x
 }
 
@@ -195,7 +201,8 @@ tether_process_blocks <- function(blocks, env) {
       name = name,
       file = block$file,
       line_range =  get_block_overlay_line_range(block),
-      tether =  tag$val
+      # tether_obj = tag$val,
+      tether = as_tether(tag$val)
     )
   }
   cli_progress_done()
@@ -256,7 +263,7 @@ tether_output <- function(results) {
     }
 
     old_tether <- str_normalize_tether(readLines(tether_file))
-    new_tether <- result$tether
+    new_tether <- str_normalize_tether(result$tether)
 
     if(old_tether == new_tether) {
       # cat(result$name, ": No change\n", sep = "")
@@ -264,13 +271,24 @@ tether_output <- function(results) {
       next
     }
 
-    old_overlaid <- get_file_lines(result$file, result$line_range)
-    new_overlaid <- make_updated_overlay(
-      old_tether = old_tether,
-      old_overlaid = old_overlaid,
-      new_tether = new_tether,
-      name = result$name
-    )
+    old_overlaid <-
+      get_file_lines(result$file, result$line_range) |>
+      str_normalize_tether()
+
+    roxified_new_tether <-
+      attr(result$tether, "roxified", TRUE) %||%
+      roxify_tether.default(tether = new_tether) |>
+      str_normalize_tether()
+
+    if (identical(roxified_new_tether, ""))
+      new_overlaid <- old_overlaid
+    else
+      new_overlaid <- make_updated_overlay(
+        old_tether = old_tether,
+        old_overlaid = old_overlaid,
+        new_tether = roxified_new_tether,
+        name = result$name
+      )
 
     if(isTRUE(attr(new_overlaid, "conflict", TRUE))) {
       add(tally$updated_tether_w_conflict) <- 1L
@@ -309,7 +327,6 @@ tether_output <- function(results) {
   invisible(NULL)
 }
 
-`add<-` <- function(x, value) x + value
 
 get_tether_file <- function(name) {
   resolve <- getOption("doctether.resolve_tether_file", NULL)
