@@ -1,6 +1,9 @@
 
 make_updated_overlay <- function(old_tether, old_overlaid, new_tether,
                                  name = "roxygen_block") {
+  # force args before changing dir, in case they're readLines('relative/path') calls
+  old_tether; old_overlaid; new_tether
+
   dir <- withr::local_tempdir(paste0(dirname(getwd()), "-roxysync"))
   withr::local_dir(dir)
 
