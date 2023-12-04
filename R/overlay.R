@@ -24,7 +24,7 @@ make_updated_overlay <- function(old_tether, old_overlaid, new_tether,
   git("commit -m 'new tether'")
 
   git("checkout overlay")
-  exit_code <- git("rebase tether overlay", # --empty=keep --keep-empty
+  exit_code <- git("rebase --ignore-whitespace tether overlay", # --empty=keep --keep-empty
                    valid_exit_codes = c(0L, 1L),
                    stdout = FALSE)
   new_overlaid <- readLines(file)
