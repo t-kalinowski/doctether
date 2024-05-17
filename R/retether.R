@@ -273,32 +273,36 @@ tether_output <- function(results) {
       next
     }
 
-    old_overlaid <-
-      get_file_lines(result$file, result$line_range) |>
-      str_normalize_tether()
-
     roxified_new_tether <-
       attr(result$tether, "roxified", TRUE) %||%
       roxify_tether.default(tether = new_tether) |>
       str_normalize_tether()
 
-    if (identical(roxified_new_tether, ""))
-      new_overlaid <- old_overlaid
-    else
-      new_overlaid <- make_updated_overlay(
-        old_tether = old_tether,
-        old_overlaid = old_overlaid,
-        new_tether = roxified_new_tether,
-        name = result$name
-      )
+    if(!is.na(roxified_new_tether) && !identical(roxified_new_tether, "")) {
 
-    if(isTRUE(attr(new_overlaid, "conflict", TRUE))) {
-      add(tally$updated_tether_w_conflict) <- 1L
-    } else {
-      add(tally$updated_tether_wo_conflict) <- 1L
+      old_overlaid <-
+        get_file_lines(result$file, result$line_range) |>
+        str_normalize_tether()
+
+      if (identical(roxified_new_tether, "") || is.na(roxified_new_tether))
+        new_overlaid <- old_overlaid
+      else
+        new_overlaid <- make_updated_overlay(
+          old_tether = old_tether,
+          old_overlaid = old_overlaid,
+          new_tether = roxified_new_tether,
+          name = result$name
+        )
+
+      if(isTRUE(attr(new_overlaid, "conflict", TRUE))) {
+        add(tally$updated_tether_w_conflict) <- 1L
+      } else {
+        add(tally$updated_tether_wo_conflict) <- 1L
+      }
+
+      set_file_lines(result$file, result$line_range, new_overlaid)
     }
 
-    set_file_lines(result$file, result$line_range, new_overlaid)
     # message("writing out new tether: ", tether_file)
     cli_alert_info("Updated tether {.topic {result$name}} ({.file {tether_file}})")
     unlink(tether_file)
